@@ -2,81 +2,51 @@
 
 ## What are Strong Params?
 
-To understand the goal of strong params, let's pretend that you run a pharmacy.
-What would happen if you let all prescription orders come through without
-checking for valid prescriptions, driver licenses, etc.? (Spoiler alert: you'd
-probably end up in jail.) It would be criminal to run a pharmacy without
-verifying that orders were legitimate. In the same way, Rails wanted to shore up
-some security vulnerabilities. Since Rails 4+, developers are required to
-whitelist the parameters that are permitted to be sent to the database from a
-form.
+To understand the purpose of strong parameters, imagine you run a pharmacy. What would happen if you allowed all prescription orders to go through without checking for valid prescriptions or driver’s licenses? (Spoiler: you’d probably end up in jail.) It would be irresponsible to run a pharmacy without verifying that orders are legitimate. Similarly, Rails introduced strong parameters to address security vulnerabilities. Since Rails 4+, developers are required to whitelist the parameters that can be sent to the database from a form.
 
 ## Setup
 
-To prevent confusion, in previous lessons I manually turned off the strong
-parameter requirement. Let's discover first why strong params were created and
-then work with them.
+In previous lessons, the strong parameter requirement was manually turned off to prevent confusion. Let’s first understand why strong parameters were created, and then work with them.
 
-## Why Strong Params
+## Why Strong Params?
 
-In the Rails app in this lesson there is our blog application with Strong Params
-_disabled_. Create a new Post by going to `/posts/new`. Once you have created
-that post, go ahead and edit it at `/posts/1/edit`. You'll notice there is no
-Description field! In this case, I don't want the user to be able to modify the
-description of a post once it's been created. This happens in all kinds of
-different cases. You wouldn't want a bank user to be able to edit their account
-number or balance, would you? But! `balance` is still a field on the account
-class. In this case, `description` is still an attribute for the Post class.
-Let's see if a user could "hack" our form to be able to modify the
-`description`.
+In this Rails app, strong parameters are _disabled_. Create a new Post by going to `/posts/new`. After creating the post, edit it at `/posts/1/edit`. You’ll notice there is no Description field! In this case, we don’t want users to be able to modify the description of a post once it’s been created. This scenario occurs in many real-world cases. For example, you wouldn’t want a bank user to edit their account number or balance, but those fields still exist on the account class. Here, `description` is still an attribute for the Post class. Let’s see if a user could "hack" the form to modify the `description`.
 
-**1.** Right click and inspect the page
+1. Right-click and inspect the page.
+2. Find the input for title. It should look like: `<input type="text" value="asdferwer" name="post[title]" id="post_title">`
+3. Right-click on the input and choose "Edit as HTML".
+4. Add the following new Description field:
 
-**2.** Find the input for title. It should look something like this: `<input type="text" value="asdferwer" name="post[title]" id="post_title">`
+    ```html
+    <br />
+    <label>Description:</label>
+    <br />
+    <input
+      type="text"
+      value="malicious description"
+      name="post[description]"
+      id="post_description"
+    />
+    ```
 
-**3.** Right click on the input and choose "Edit as HTML"
+5. Click somewhere else—now a description field appears.
+6. Type a message into the new field.
+7. Click submit. You’ll notice the description has been updated. This is a security issue!
 
-**4.** Add the following new Description field:
-
-```html
-<br />
-<label>Description:</label>
-<br />
-<input
-  type="text"
-  value="malicious description"
-  name="post[description]"
-  id="post_description"
-/>
-```
-
-**5.** Click somewhere else and look! a wild description field appears.
-
-**6.** Now type in some message into the new field.
-
-**7.** Click submit and you'll notice that the description has been updated.
-What a nefarious hack!
-
-That is the problem that strong params were created to fix. We want to make sure
-that when users submit a form we only let the fields we want get by.
+Strong parameters were created to prevent this. We want to ensure that when users submit a form, only the fields we explicitly allow are processed.
 
 ## Code Implementation
 
-Let's enable Strong Params. To do this, open up `config/application.rb` and
-delete the line that says:
-`config.action_controller.permit_all_parameters = true`. Now restart your rails
-server and navigate to `localhost:3000/posts/new`. Once there fill out the form
-and click `submit`. You'll see we get the following `ForbiddenAttributesError`:
+Let’s enable strong parameters. Open `config/application.rb` and delete the line:
+`config.action_controller.permit_all_parameters = true`.
+
+Restart your Rails server and navigate to `localhost:3000/posts/new`. Fill out the form and click submit. You’ll see a `ForbiddenAttributesError`:
 
 ![ForbiddenAttributesError](https://s3.amazonaws.com/flatiron-bucket/readme-lessons/ForbiddenAttributesError.png)
 
-What this means is that Rails needs to be told what parameters are allowed to be
-submitted through the form to the database. The default is to let _nothing_
-through.
+This means Rails needs to be told which parameters are allowed to be submitted through the form to the database. By default, nothing is permitted.
 
-The same error would occur if you were trying to update a record. So how do we
-fix this? Let's update the `create` and `update` methods to look like the code
-below:
+The same error occurs if you try to update a record. To fix this, update the `create` and `update` methods as follows:
 
 ```ruby
 # app/controllers/posts_controller.rb
@@ -94,31 +64,15 @@ def update
 end
 ```
 
-If you go back to the web browser and click refresh you'll see everything is
-working for both the `create` and `update` actions. Running the Rspec tests
-reveals that our specs are now passing again as well. You'll notice that our
-`update` only has a `:title` in the `permit` method. This is because, given our
-forms, we only want the `title` to be submittable! If you go and do your
-nefarious hack again, it won't work. Thwarted!!
+If you refresh the browser, both the `create` and `update` actions will work. Running the RSpec tests will show that the specs are passing. Notice that `update` only permits `:title`—this is because, given our forms, we only want the title to be editable. If you try the earlier hack again, it won’t work.
 
 ### Permit vs. Require
 
-What is the deal with `#permit` vs `#require`? The `#require` method is the most
-restrictive. It means that the `params` that get passed in **must** contain a
-key called "post". If it's not included then it fails and the user gets an
-error. The `#permit` method is a bit looser. It means that the `params` hash
-**may** have whatever keys are in it. So in the `create` case, it may have the
-`:title` and `:description` keys. If it doesn't have one of those keys it's no
-problem: the hash just won't accept any other keys.
+What’s the difference between `permit` and `require`? The `require` method is strict: it means the `params` must contain a key called "post". If it’s missing, the request fails. The `permit` method is more flexible: it allows only the specified keys to be accepted. If a key isn’t present, it’s simply ignored.
 
 ## DRYing up Strong Params
 
-The code we wrote above is great if you only have a `create` method in your
-controller. However, if you have a standard CRUD setup you will also need to
-implement the same code in your `update` action. In our example we had different
-code for `create` and `update`, but generally you have the same items. It's a
-standard Rails practice to remove code repetition, so let's abstract the strong
-parameter call into its own method in the controller:
+The code above is fine if you only have a `create` method. However, in a standard CRUD setup, you’ll also need to implement similar code in your `update` action. In our example, we had different code for `create` and `update`, but usually you want the same permitted fields. To avoid repetition, it’s standard Rails practice to abstract the strong parameter call into its own method:
 
 ```ruby
 # app/controllers/posts_controller.rb
@@ -142,17 +96,9 @@ def post_params
 end
 ```
 
-Now, both our `create` and `update` methods in the `posts` controller can simply
-call `post_params`. This is a very helpful method since if you duplicated the
-strong parameter call in both the `create` and `update` methods you would need
-to change both method arguments every time you change the database schema for
-the `posts` table... and that sounds like a bad way to live. However, by
-creating this `post_params` method we can simply make one change and both
-methods will automatically be able to have the proper attributes whitelisted.
+Now, both `create` and `update` can simply call `post_params`. This is helpful because if you duplicated the strong parameter call in both methods, you’d need to update both every time the schema changes. By using a `post_params` method, you only need to update it in one place.
 
-Hm, but didn't we say above that we only wanted to permit updates to `:title` in
-the `update` action? We can make sure that we meet that requirement with a
-slightly fancy splat:
+But what if you want to permit different fields for `create` and `update`? You can use a splat argument:
 
 ```ruby
 # app/controllers/posts_controller.rb
@@ -171,18 +117,11 @@ end
 
 private
 
-
-# We pass the permitted fields in as *args;
-# this keeps `post_params` pretty dry while
-# still allowing slightly different behavior
-# depending on the controller action. This
-# should come after the other methods
-
+# Pass permitted fields as *args; this keeps `post_params` DRY while
+# allowing different behavior depending on the action.
 def post_params(*args)
   params.require(:post).permit(*args)
 end
 ```
 
-Test this out in the browser and you can see that you can now create and update
-posts without any errors. And you will also notice that all of the Rspec tests
-are still passing.
+Test this in the browser: you can now create and update posts without errors, and all RSpec tests should pass.
