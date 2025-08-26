@@ -9,6 +9,8 @@
 
 # Ignore the default SQLite database.
 /db/*.sqlite3
+/db/*.sqlite3*
+/db/*.sqlite3-journal
 /db/*.sqlite3-*
 
 # Ignore all logfiles and tempfiles.
@@ -16,6 +18,7 @@
 /tmp/*
 !/log/.keep
 !/tmp/.keep
+/coverage/
 
 # Ignore pidfiles, but keep the directory.
 /tmp/pids/*
@@ -31,6 +34,7 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+/config/credentials/*.key
 
 /public/packs
 /public/packs-test
@@ -39,8 +43,31 @@
 yarn-debug.log*
 .yarn-integrity
 
-# Rails 6.1 specific
-/config/credentials/*.key
+# Rails 7.1 specific
+/config/credentials/*.yml.enc
+# Ignore environment files
+/.env
+/.env.*
+# Ignore editor swap/backup files
+*~
+*.swp
+*.swo
+*.bak
+# Ignore system test screenshots
+/tmp/screenshots/
+# Ignore byebug history
+/.byebug_history
+# Ignore yarn and node modules
+/node_modules/
+/yarn-error.log
+/yarn-debug.log*
+/.yarn-integrity
+# Ignore VSCode settings
+/.vscode/
+# Ignore coverage reports
+/coverage/
+# Ignore RuboCop config
+/.rubocop-https---*
 
 # Bootsnap cache
 /tmp/cache/bootsnap*
